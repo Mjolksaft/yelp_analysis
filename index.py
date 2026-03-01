@@ -32,9 +32,60 @@ df.printSchema()
 # stars_dist.show()
 # stars_dist.write.mode("overwrite").parquet("/yelp_data/results/stars_distribution")
 
+# business_df = spark.read.json("/yelp_data/business.json") \
+#     .select("business_id", "name", "city", "stars")
+
 # top_businesses = df.groupBy("business_id").count().orderBy(F.col("count").desc()).limit(10)
 # top_businesses.show(truncate=False)
 # top_businesses.write.mode("overwrite").parquet("/yelp_data/results/top_10_businesses")
+
+# top_businesses_named = top_businesses.join(
+#     business_df,
+#     on="business_id",
+#     how="left"
+# )
+
+# top_businesses_named = top_businesses_named.select(
+#     "name",
+#     "city",
+#     "stars",
+#     "count"
+# ).orderBy(F.col("count").desc())
+
+# top_businesses_named.show(truncate=False)
+
+# top_businesses_named.write.mode("overwrite") \
+#     .parquet("/yelp_data/results/top_10_businesses_named")
+
+top_rated = df.groupBy("business_id") \
+    .agg(
+        F.avg("stars").alias("avg_rating"),
+        F.count("*").alias("n_reviews")
+    ) \
+    .filter(F.col("n_reviews") >= 1000) \
+    .orderBy(F.col("avg_rating").desc()) \
+    .limit(10)
+
+top_rated.show(truncate=False)
+
+business_df = spark.read.json("hdfs://localhost:9000/yelp_data/business.json") \
+    .select("business_id", "name", "city", "stars")
+
+top_rated_named = top_rated.join(
+    business_df,
+    on="business_id",
+    how="left"
+).select(
+    "name",
+    "city",
+    F.round("avg_rating", 3).alias("avg_rating"),
+    "n_reviews"
+).orderBy(F.col("avg_rating").desc())
+
+top_rated_named.show(truncate=False)
+
+top_rated_named.write.mode("overwrite") \
+    .parquet("/yelp_data/results/top_rated_min1000_reviews")
 
 # top_users = df.groupBy("user_id").count().orderBy(F.col("count").desc()).limit(10)
 # top_users.show(truncate=False)
@@ -197,7 +248,7 @@ show_parquet(
 
 show_parquet(
     "Top 10 Businesses by Review Count",
-    f"{BASE}/top_10_businesses",
+    f"{BASE}/top_10_businesses_named",
     order_col="count",
     desc=True,
     n=10
