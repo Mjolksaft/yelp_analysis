@@ -57,55 +57,55 @@ df.printSchema()
 # top_businesses_named.write.mode("overwrite") \
 #     .parquet("/yelp_data/results/top_10_businesses_named")
 
-top_rated = df.groupBy("business_id") \
-    .agg(
-        F.avg("stars").alias("avg_rating"),
-        F.count("*").alias("n_reviews")
-    ) \
-    .filter(F.col("n_reviews") >= 1000) \
-    .orderBy(F.col("avg_rating").desc()) \
-    .limit(10)
+# top_rated = df.groupBy("business_id") \
+#     .agg(
+#         F.avg("stars").alias("avg_rating"),
+#         F.count("*").alias("n_reviews")
+#     ) \
+#     .filter(F.col("n_reviews") >= 1000) \
+#     .orderBy(F.col("avg_rating").desc()) \
+#     .limit(10)
 
-top_rated.show(truncate=False)
+# top_rated.show(truncate=False)
 
-business_df = spark.read.json("hdfs://localhost:9000/yelp_data/business.json") \
-    .select("business_id", "name", "city", "stars")
+# business_df = spark.read.json("hdfs://localhost:9000/yelp_data/business.json") \
+#     .select("business_id", "name", "city", "stars")
 
-top_rated_named = top_rated.join(
-    business_df,
-    on="business_id",
-    how="left"
-).select(
-    "name",
-    "city",
-    F.round("avg_rating", 3).alias("avg_rating"),
-    "n_reviews"
-).orderBy(F.col("avg_rating").desc())
+# top_rated_named = top_rated.join(
+#     business_df,
+#     on="business_id",
+#     how="left"
+# ).select(
+#     "name",
+#     "city",
+#     F.round("avg_rating", 3).alias("avg_rating"),
+#     "n_reviews"
+# ).orderBy(F.col("avg_rating").desc())
 
-top_rated_named.show(truncate=False)
+# top_rated_named.show(truncate=False)
 
-top_rated_named.write.mode("overwrite") \
-    .parquet("/yelp_data/results/top_rated_min1000_reviews")
+# top_rated_named.write.mode("overwrite") \
+#     .parquet("/yelp_data/results/top_rated_min1000_reviews")
 
 # top_users = df.groupBy("user_id").count().orderBy(F.col("count").desc()).limit(10)
 # top_users.show(truncate=False)
 # top_users.write.mode("overwrite").parquet("/yelp_data/results/top_10_users")
 
-reviews = df.withColumn(
-    "clean_text_norm",
-    F.trim(F.regexp_replace(F.col("clean_text"), r"\s+", " "))
-).withColumn(
-    "char_count",
-    F.length(F.col("clean_text_norm"))
-).withColumn(
-    "rating_group",
-    F.when(F.col("stars").isin([1,2]), "low")
-     .when(F.col("stars").isin([4,5]), "high")
-     .otherwise("mid")
-)
+# reviews = df.withColumn(
+#     "clean_text_norm",
+#     F.trim(F.regexp_replace(F.col("clean_text"), r"\s+", " "))
+# ).withColumn(
+#     "char_count",
+#     F.length(F.col("clean_text_norm"))
+# ).withColumn(
+#     "rating_group",
+#     F.when(F.col("stars").isin([1,2]), "low")
+#      .when(F.col("stars").isin([4,5]), "high")
+#      .otherwise("mid")
+# )
 
-reviews_lh = reviews.filter(F.col("rating_group").isin(["low","high"])) \
-    .select("stars","rating_group","char_count","clean_text_norm")
+# reviews_lh = reviews.filter(F.col("rating_group").isin(["low","high"])) \
+#     .select("stars","rating_group","char_count","clean_text_norm")
 
 
 # char_stats = reviews_lh.groupBy("rating_group").agg(
